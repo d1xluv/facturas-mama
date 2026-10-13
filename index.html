@@ -68,6 +68,7 @@
 
 <div class="top">
   <h1>📄 Presupuestos y Facturas</h1>
+  <button id="instalar" style="display:none;width:100%;padding:14px;font-size:18px;font-weight:700;border:0;border-radius:12px;background:#12805c;color:#fff;cursor:pointer">📲 Instalar la app en el móvil</button>
   <button class="tab on" data-v="nuevo">✏️ Nuevo</button>
   <button class="tab" data-v="guardados">📁 Guardados</button>
   <button class="tab" data-v="datos">⚙️ Mis datos</button>
@@ -553,6 +554,18 @@ function ir(v) {
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => ir(t.dataset.v));
 document.querySelectorAll('.tipo button').forEach(b => b.onclick = () => ponerTipo(b.dataset.t));
 $('limpiar').onclick = () => nuevoDoc(tipo);
+
+/* ---------- Instalar en el móvil ---------- */
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+let avisoInstalar;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); avisoInstalar = e; $('instalar').style.display = 'block'; });
+$('instalar').onclick = async () => {
+  if (!avisoInstalar) return;
+  avisoInstalar.prompt();
+  await avisoInstalar.userChoice;
+  avisoInstalar = null; $('instalar').style.display = 'none';
+};
+window.addEventListener('appinstalled', () => { $('instalar').style.display = 'none'; });
 
 pintarClientes();
 nuevoDoc('presupuesto');
