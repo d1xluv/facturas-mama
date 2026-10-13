@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Presupuestos y Facturas</title>
+<meta name="theme-color" content="#1e4fa3">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icono-192.png">
+<link rel="apple-touch-icon" href="icono-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Facturas">
+<meta name="robots" content="noindex, nofollow">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #eef2f8; color: #1b2a4a; font-size: 17px; }
+  .top { background: #1e4fa3; color: #fff; padding: 14px 18px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .top h1 { font-size: 20px; margin: 0 auto 0 0; }
+  .tab { background: transparent; color: #fff; border: 2px solid #fff; border-radius: 10px; padding: 10px 16px; font-size: 16px; cursor: pointer; }
+  .tab.on { background: #fff; color: #1e4fa3; font-weight: 700; }
+  @media (max-width: 600px) {
+    .top h1 { width: 100%; }
+    .tab { flex: 1; padding: 10px 2px; font-size: 14px; white-space: nowrap; }
+  }
+  main { max-width: 1250px; margin: 0 auto; padding: 18px 16px 60px; }
+  .view { display: none; }
+  .view.on { display: block; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 950px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 18px; color: #1e4fa3; }
+  .tipo { display: flex; gap: 10px; }
+  .tipo button { flex: 1; padding: 16px; font-size: 18px; border-radius: 12px; border: 2px solid #1e4fa3; background: #fff; color: #1e4fa3; cursor: pointer; font-weight: 600; }
+  .tipo button.on { background: #1e4fa3; color: #fff; }
+  label { display: block; font-size: 14px; color: #52606d; margin: 10px 0 4px; }
+  input, textarea, select { width: 100%; padding: 11px 12px; font-size: 17px; border: 1px solid #b6c8e8; border-radius: 10px; font-family: inherit; color: inherit; background: #fff; }
+  textarea { resize: vertical; min-height: 64px; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; min-width: 0; }
+  .linea { border: 1px solid #dbe4f3; background: #f7f9fd; border-radius: 12px; padding: 12px; margin-bottom: 12px; position: relative; }
+  .quitar { position: absolute; top: 8px; right: 8px; border: 0; background: #fde8e8; color: #b42318; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+  .importe { text-align: right; font-weight: 600; margin-top: 8px; }
+  .btn { display: block; width: 100%; padding: 14px; font-size: 17px; border-radius: 12px; border: 2px dashed #1e4fa3; background: #fff; color: #1e4fa3; cursor: pointer; font-weight: 600; }
+  .grande { display: block; width: 100%; padding: 20px; font-size: 21px; border-radius: 14px; border: 0; background: #12805c; color: #fff; cursor: pointer; font-weight: 700; }
+  .grande:disabled { opacity: .6; cursor: wait; }
+  .totales { font-size: 18px; line-height: 1.8; }
+  .totales div { display: flex; justify-content: space-between; }
+  .totales .t { font-weight: 800; font-size: 22px; color: #1e4fa3; border-top: 2px solid #1e4fa3; margin-top: 4px; padding-top: 4px; }
+  .preview-wrap { background: #fff; border-radius: 14px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); position: sticky; top: 12px; overflow: hidden; }
+  .preview-wrap p { margin: 0 0 8px; color: #52606d; font-size: 14px; }
+  #preview { width: 794px; transform-origin: top left; }
+  .lista-item { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid #e4e7eb; padding: 12px 0; }
+  .lista-item .info { flex: 1; min-width: 200px; }
+  .lista-item .info b { font-size: 17px; }
+  .lista-item .info small { color: #616e7c; display: block; }
+  .chip { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; margin-right: 6px; }
+  .chip.f { background: #dcfce7; color: #12805c; }
+  .chip.p { background: #fef3c7; color: #92400e; }
+  .peq { padding: 10px 14px; font-size: 15px; border-radius: 10px; border: 1px solid #1e4fa3; background: #fff; color: #1e4fa3; cursor: pointer; }
+  .peq.verde { background: #12805c; border-color: #12805c; color: #fff; }
+  .aviso { background: #dcfce7; color: #12805c; padding: 14px; border-radius: 12px; margin-bottom: 16px; font-weight: 600; display: none; }
+  .vacio { color: #616e7c; text-align: center; padding: 30px; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>📄 Presupuestos y Facturas</h1>
+  <button class="tab on" data-v="nuevo">✏️ Nuevo</button>
+  <button class="tab" data-v="guardados">📁 Guardados</button>
+  <button class="tab" data-v="datos">⚙️ Mis datos</button>
+</div>
+
+<main>
+  <!-- ============ NUEVO ============ -->
+  <section class="view on" id="v-nuevo">
+    <div class="aviso" id="aviso"></div>
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>1. ¿Qué quieres hacer?</h2>
+          <div class="tipo">
+            <button data-t="presupuesto" class="on">Presupuesto</button>
+            <button data-t="factura">Factura</button>
+          </div>
+          <div class="row">
+            <div><label>Número</label><input id="numero"></div>
+            <div><label>Fecha</label><input id="fecha" type="date"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>2. Cliente</h2>
+          <label>Escribe el nombre (si ya existe, se rellena solo)</label>
+          <input id="c-nombre" list="clientes" placeholder="Ej: María López">
+          <datalist id="clientes"></datalist>
+          <div class="row">
+            <div><label>DNI / CIF</label><input id="c-nif"></div>
+            <div><label>Teléfono (opcional)</label><input id="c-tel"></div>
+          </div>
+          <label>Dirección</label><input id="c-dir" placeholder="C/ Mayor, 5, 2º B">
+          <label>Código postal y ciudad</label><input id="c-ciudad" placeholder="28801 Alcalá de Henares">
+        </div>
+
+        <div class="card">
+          <h2>3. Trabajos</h2>
+          <div id="lineas"></div>
+          <button class="btn" id="add">+ Añadir otro trabajo</button>
+          <div class="row" style="margin-top:14px">
+            <div><label>IVA</label>
+              <select id="iva"><option value="21">21 %</option><option value="10">10 % (reforma de vivienda)</option><option value="0">Sin IVA</option></select>
+            </div>
+          </div>
+          <label>Nota (opcional)</label>
+          <textarea id="nota" placeholder="Ej: Material incluido. Plazo de ejecución: 1 semana."></textarea>
+        </div>
+
+        <div class="card totales" id="totales"></div>
+
+        <button class="grande" id="guardar">💾 Guardar PDF</button>
+        <p style="text-align:center;color:#616e7c;font-size:14px">El PDF se guarda en la carpeta <b>Descargas</b> del ordenador.</p>
+        <button class="btn" id="limpiar" style="border-style:solid;margin-top:8px">Empezar uno nuevo en blanco</button>
+      </div>
+
+      <div class="preview-wrap" id="pw">
+        <p>Así quedará:</p>
+        <div id="preview"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GUARDADOS ============ -->
+  <section class="view" id="v-guardados">
+    <div class="card">
+      <h2>Todo lo que has hecho</h2>
+      <input id="buscar" placeholder="🔍 Buscar por cliente...">
+      <div id="lista"></div>
+    </div>
+  </section>
+
+  <!-- ============ MIS DATOS ============ -->
+  <section class="view" id="v-datos">
+    <div class="card">
+      <h2>Mis datos (salen en todos los documentos)</h2>
+      <label>Nombre</label><input id="e-nombre">
+      <label>DNI / NIE</label><input id="e-nif">
+      <label>Dirección</label><input id="e-dir">
+      <label>Código postal y ciudad</label><input id="e-ciudad">
+      <label>Teléfono</label><input id="e-tel">
+      <label>IBAN (para que te paguen)</label><input id="e-iban">
+      <div class="row">
+        <div><label>Siguiente nº de factura</label><input id="e-nfac" type="number"></div>
+        <div><label>Siguiente nº de presupuesto</label><input id="e-npre" type="number"></div>
+      </div>
+      <br><button class="grande" id="guardar-datos">Guardar mis datos</button>
+    </div>
+    <div class="card">
+      <h2>📧 Envío automático por correo</h2>
+      <p style="margin-top:0">Cada PDF que guardes se envía también a este correo.</p>
+      <label>Se envía a</label><input id="env-destino" readonly style="background:#f3f4f6">
+      <label>Dirección del enviador (la pone quien lo instala)</label><input id="env-url" placeholder="https://script.google.com/macros/s/.../exec">
+      <label>Clave del enviador</label><input id="env-clave">
+      <div class="row" style="margin-top:12px">
+        <button class="peq verde" id="env-guardar">Guardar</button>
+        <button class="peq" id="env-probar">Enviar correo de prueba</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Copia de seguridad</h2>
+      <p style="margin-top:0">Guarda una copia de todos tus clientes y documentos por si se cambia de ordenador.</p>
+      <div class="row">
+        <button class="peq" id="exportar">⬇️ Hacer copia</button>
+        <button class="peq" id="importar">⬆️ Recuperar copia</button>
+      </div>
+      <input type="file" id="fichero" accept=".json" style="display:none">
+    </div>
+  </section>
+</main>
+
+<script>
+/* ---------- Almacenamiento ---------- */
+const KEY = 'pyf-v1';
+const defecto = {
+  emisor: { nombre: '', nif: '', dir: '', ciudad: '', tel: '', iban: '' },
+  sigFactura: 23, sigPresupuesto: 1, clientes: [], docs: [],
+  envio: { url: 'https://script.google.com/macros/s/AKfycbxmUc6VRifoGQzClqAKdgMhP3PiNEjiXi8zNO_McDchtZUXolaE6nh-Z4G_0HJN6o8nRQ/exec',
+           clave: '6e6c61a7e09e083b9990ac01', destino: 'danielahozas@gmail.com' }
+};
+let db;
+try { db = JSON.parse(localStorage.getItem(KEY)) || defecto; } catch { db = defecto; }
+db.envio = db.envio || { ...defecto.envio };
+if (!db.envio.url) db.envio.url = defecto.envio.url;
+if (!db.envio.clave) db.envio.clave = defecto.envio.clave;
+const salvar = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch {} };
+
+/* ---------- Utilidades ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const num = v => parseFloat(String(v).replace(',', '.')) || 0;
+const eur = n => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: 'always' }) + ' €';
+const fechaES = iso => iso ? iso.split('-').reverse().join('/') : '';
+const hoy = () => new Date().toISOString().slice(0, 10);
+
+/* ---------- Estado del documento actual ---------- */
+let tipo = 'presupuesto';
+let lineas = [];
+
+function nuevoDoc(t = 'presupuesto') {
+  tipo = t;
+  lineas = [{ concepto: '', detalle: '', cant: 1, precio: '' }];
+  ['c-nombre', 'c-nif', 'c-tel', 'c-dir', 'c-ciudad', 'nota'].forEach(id => $(id).value = '');
+  $('iva').value = '21';
+  $('fecha').value = hoy();
+  ponerTipo(t);
+  pintarLineas();
+}
+
+function ponerTipo(t) {
+  tipo = t;
+  document.querySelectorAll('.tipo button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  $('numero').value = t === 'factura' ? db.sigFactura : db.sigPresupuesto;
+  $('guardar').textContent = t === 'factura' ? '💾 Guardar factura en PDF' : '💾 Guardar presupuesto en PDF';
+  refrescar();
+}
+
+function pintarLineas() {
+  $('lineas').innerHTML = lineas.map((l, i) => `
+    <div class="linea">
+      ${lineas.length > 1 ? `<button class="quitar" data-q="${i}">Quitar</button>` : ''}
+      <label>Trabajo</label>
+      <input data-i="${i}" data-k="concepto" value="${esc(l.concepto)}" placeholder="Ej: Alicatado del baño">
+      <label>Detalles (uno por línea, opcional)</label>
+      <textarea data-i="${i}" data-k="detalle" placeholder="Quitar azulejo viejo&#10;Poner azulejo nuevo">${esc(l.detalle)}</textarea>
+      <div class="row">
+        <div><label>Cantidad (m², horas, unidades…)</label><input data-i="${i}" data-k="cant" inputmode="decimal" value="${esc(l.cant)}"></div>
+        <div><label>Precio por unidad (€)</label><input data-i="${i}" data-k="precio" inputmode="decimal" value="${esc(l.precio)}" placeholder="0"></div>
+      </div>
+      <div class="importe" id="imp-${i}"></div>
+    </div>`).join('');
+  refrescar();
+}
+
+$('lineas').addEventListener('input', e => {
+  const { i, k } = e.target.dataset;
+  if (i === undefined) return;
+  lineas[i][k] = e.target.value;
+  refrescar();
+});
+$('lineas').addEventListener('click', e => {
+  if (e.target.dataset.q === undefined) return;
+  lineas.splice(+e.target.dataset.q, 1);
+  pintarLineas();
+});
+$('add').onclick = () => { lineas.push({ concepto: '', detalle: '', cant: 1, precio: '' }); pintarLineas(); };
+
+/* ---------- Leer el formulario ---------- */
+function docActual() {
+  const ls = lineas.filter(l => l.concepto.trim() || num(l.precio));
+  const base = ls.reduce((s, l) => s + num(l.cant) * num(l.precio), 0);
+  const iva = num($('iva').value);
+  return {
+    tipo, numero: $('numero').value.trim(), fecha: $('fecha').value,
+    cliente: { nombre: $('c-nombre').value.trim(), nif: $('c-nif').value.trim(), tel: $('c-tel').value.trim(),
+               dir: $('c-dir').value.trim(), ciudad: $('c-ciudad').value.trim() },
+    lineas: ls.map(l => ({ ...l })), iva, nota: $('nota').value.trim(),
+    base, cuotaIva: base * iva / 100, total: base * (1 + iva / 100)
+  };
+}
+
+function refrescar() {
+  lineas.forEach((l, i) => { const el = $('imp-' + i); if (el) el.textContent = 'Importe: ' + eur(num(l.cant) * num(l.precio)); });
+  const d = docActual();
+  $('totales').innerHTML = `
+    <div><span>Base</span><span>${eur(d.base)}</span></div>
+    <div><span>IVA ${d.iva} %</span><span>${eur(d.cuotaIva)}</span></div>
+    <div class="t"><span>TOTAL</span><span>${eur(d.total)}</span></div>`;
+  $('preview').innerHTML = htmlDoc(d);
+  escalarPreview();
+}
+['numero', 'fecha', 'c-nif', 'c-tel', 'c-dir', 'c-ciudad', 'iva', 'nota'].forEach(id => $(id).addEventListener('input', refrescar));
+
+function escalarPreview() {
+  const w = $('pw').clientWidth - 24, p = $('preview');
+  const s = Math.min(1, w / 794);
+  p.style.transform = `scale(${s})`;
+  $('pw').style.height = (p.scrollHeight * s + 50) + 'px';
+}
+window.addEventListener('resize', escalarPreview);
+
+/* ---------- Clientes ---------- */
+function pintarClientes() {
+  $('clientes').innerHTML = db.clientes.map(c => `<option value="${esc(c.nombre)}">`).join('');
+}
+$('c-nombre').addEventListener('input', () => {
+  const c = db.clientes.find(c => c.nombre.toLowerCase() === $('c-nombre').value.trim().toLowerCase());
+  if (c) { $('c-nif').value = c.nif; $('c-tel').value = c.tel || ''; $('c-dir').value = c.dir; $('c-ciudad').value = c.ciudad; }
+  refrescar();
+});
+function guardarCliente(c) {
+  if (!c.nombre) return;
+  const i = db.clientes.findIndex(x => x.nombre.toLowerCase() === c.nombre.toLowerCase());
+  if (i >= 0) db.clientes[i] = c; else db.clientes.push(c);
+}
+
+/* ---------- Plantilla del PDF (misma que factura-22) ---------- */
+function htmlDoc(d) {
+  const e = db.emisor, c = d.cliente, esFac = d.tipo === 'factura';
+  const filas = d.lineas.map(l => {
+    const det = String(l.detalle || '').split('\n').map(x => x.trim()).filter(Boolean);
+    return `<tr><td><strong>${esc(l.concepto)}</strong>${det.length ? `<ul>${det.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</td>
+      <td class="n">${esc(l.cant)}</td><td class="n">${eur(num(l.precio))}</td><td class="n">${eur(num(l.cant) * num(l.precio))}</td></tr>`;
+  }).join('') || `<tr><td colspan="4" style="color:#9aa5b1">Añade los trabajos a la izquierda…</td></tr>`;
+  return `
+  <div class="doc">
+  <style>
+    .doc { font-family: "Segoe UI", Arial, sans-serif; color: #1b2a4a; font-size: 13px; background: #fff; padding: 40px 44px; width: 794px; min-height: 1100px; }
+    .doc header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1e4fa3; padding-bottom: 14px; }
+    .doc h1 { color: #1e4fa3; font-size: 32px; margin: 0; letter-spacing: 2px; }
+    .doc .meta { text-align: right; line-height: 1.7; }
+    .doc .meta b { display: inline-block; min-width: 100px; }
+    .doc .parties { display: flex; gap: 24px; margin: 26px 0; }
+    .doc .box { flex: 1; border: 1px solid #b6c8e8; background: #f3f7fd; border-radius: 6px; padding: 12px 14px; line-height: 1.6; }
+    .doc .box h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #1e4fa3; margin: 0 0 6px; }
+    .doc .box .name { font-weight: 700; font-size: 15px; }
+    .doc table { width: 100%; border-collapse: collapse; }
+    .doc thead th { background: #1e4fa3; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 8px 10px; text-align: left; }
+    .doc thead th.n, .doc td.n { text-align: right; white-space: nowrap; }
+    .doc td { padding: 10px; border-bottom: 1px solid #e4e7eb; vertical-align: top; }
+    .doc td ul { margin: 6px 0 0; padding-left: 18px; color: #3e4c59; }
+    .doc td li { margin: 2px 0; }
+    .doc .totals { width: 300px; margin: 18px 0 0 auto; }
+    .doc .totals td { padding: 7px 10px; }
+    .doc .totals tr.total td { background: #1e4fa3; color: #fff; font-weight: 700; font-size: 16px; border: 0; }
+    .doc .pay { margin-top: 28px; border-left: 4px solid #1e4fa3; background: #f3f7fd; padding: 10px 14px; line-height: 1.7; white-space: pre-line; }
+    .doc footer { margin-top: 40px; font-size: 11px; color: #616e7c; border-top: 1px solid #e4e7eb; padding-top: 10px; }
+  </style>
+  <header>
+    <div><h1>${esFac ? 'FACTURA' : 'PRESUPUESTO'}</h1></div>
+    <div class="meta">
+      <div><b>Nº ${esFac ? 'factura' : 'presupuesto'}:</b> ${esc(d.numero)}</div>
+      <div><b>Fecha:</b> ${fechaES(d.fecha)}</div>
+    </div>
+  </header>
+  <section class="parties">
+    <div class="box"><h2>${esFac ? 'Emisor' : 'De'}</h2>
+      <div class="name">${esc(e.nombre)}</div><div>NIF/NIE: ${esc(e.nif)}</div>
+      <div>${esc(e.dir)}</div><div>${esc(e.ciudad)}</div>${e.tel ? `<div>Tel: ${esc(e.tel)}</div>` : ''}
+    </div>
+    <div class="box"><h2>Cliente</h2>
+      <div class="name">${esc(c.nombre) || '&nbsp;'}</div>${c.nif ? `<div>DNI/CIF: ${esc(c.nif)}</div>` : ''}
+      <div>${esc(c.dir)}</div><div>${esc(c.ciudad)}</div>
+    </div>
+  </section>
+  <table>
+    <thead><tr><th>Concepto</th><th class="n">Cant.</th><th class="n">Precio unit.</th><th class="n">Importe</th></tr></thead>
+    <tbody>${filas}</tbody>
+  </table>
+  <table class="totals">
+    <tr><td>Base imponible</td><td class="n">${eur(d.base)}</td></tr>
+    <tr><td>IVA (${d.iva}%)</td><td class="n">${eur(d.cuotaIva)}</td></tr>
+    <tr class="total"><td>TOTAL</td><td class="n">${eur(d.total)}</td></tr>
+  </table>
+  ${d.nota ? `<div class="pay">${esc(d.nota)}</div>` : ''}
+  ${esFac && e.iban ? `<div class="pay"><b>Forma de pago:</b> transferencia bancaria<br><b>IBAN:</b> ${esc(e.iban)}</div>` : ''}
+  <footer>${esFac
+    ? 'Factura emitida conforme al Real Decreto 1619/2012, por el que se aprueba el Reglamento de obligaciones de facturación.'
+    : 'Presupuesto válido durante 30 días desde la fecha de emisión. Firma de conformidad del cliente: ____________________'}</footer>
+  </div>`;
+}
+
+/* ---------- Generar y guardar el PDF ---------- */
+function nombreArchivo(d) {
+  const cli = (d.cliente.nombre || 'cliente').replace(/[^\p{L}\p{N} ]/gu, '').trim().replace(/\s+/g, '-');
+  return `${d.tipo === 'factura' ? 'Factura' : 'Presupuesto'}-${d.numero}-${cli}.pdf`;
+}
+async function crearPDF(d) {
+  // html2canvas desplaza la captura si la página está bajada: subimos arriba mientras se crea.
+  const y = window.scrollY;
+  window.scrollTo(0, 0);
+  try {
+    return await html2pdf().set({
+      margin: 0,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, width: 794, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
+      jsPDF: { unit: 'px', format: [794, 1123], hotfixes: ['px_scaling'] },
+      pagebreak: { mode: ['css', 'legacy'] }
+    }).from(htmlDoc(d)).outputPdf('blob');
+  } finally {
+    window.scrollTo(0, y);
+  }
+}
+function guardarArchivo(blob, nombre) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nombre; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+async function descargarPDF(d) { guardarArchivo(await crearPDF(d), nombreArchivo(d)); }
+
+/* ---------- Envío por correo (script de Google, ver enviar-correo.gs) ---------- */
+const aBase64 = blob => new Promise((ok, mal) => {
+  const r = new FileReader();
+  r.onload = () => ok(r.result.split(',')[1]); r.onerror = mal; r.readAsDataURL(blob);
+});
+async function llamarEnviador(datos) {
+  if (!db.envio.url) throw new Error('El envío por correo no está configurado (pestaña Mis datos).');
+  const res = await fetch(db.envio.url, {
+    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ clave: db.envio.clave, ...datos })
+  });
+  const r = await res.json();
+  if (!r.ok) throw new Error(r.error || 'El enviador respondió con un error.');
+}
+async function enviarPDF(d, blob) {
+  const t = d.tipo === 'factura' ? 'Factura' : 'Presupuesto';
+  await llamarEnviador({
+    nombre: nombreArchivo(d), pdf: await aBase64(blob),
+    asunto: `${t} nº ${d.numero} – ${d.cliente.nombre} – ${eur(d.total)}`,
+    texto: `${t} nº ${d.numero}\nCliente: ${d.cliente.nombre}\nFecha: ${fechaES(d.fecha)}\nTotal: ${eur(d.total)}\n\nSe adjunta el PDF.`
+  });
+}
+
+$('guardar').onclick = async () => {
+  const d = docActual();
+  if (!d.cliente.nombre) { alert('Falta el nombre del cliente.'); $('c-nombre').focus(); return; }
+  if (!d.lineas.length) { alert('Añade al menos un trabajo.'); return; }
+  if (d.tipo === 'factura' && db.docs.some(x => x.tipo === 'factura' && String(x.numero) === d.numero)) {
+    if (!confirm(`Ya existe la factura nº ${d.numero}. ¿Guardarla otra vez con el mismo número?`)) return;
+  }
+  $('guardar').disabled = true; $('guardar').textContent = 'Creando PDF…';
+  let blob;
+  try {
+    blob = await crearPDF(d);
+    guardarArchivo(blob, nombreArchivo(d));
+    d.id = Date.now();
+    db.docs.unshift(d);
+    guardarCliente(d.cliente);
+    const n = parseInt(d.numero, 10);
+    if (!isNaN(n)) {
+      if (d.tipo === 'factura') db.sigFactura = Math.max(db.sigFactura, n + 1);
+      else db.sigPresupuesto = Math.max(db.sigPresupuesto, n + 1);
+    }
+    d.enviado = false;
+    salvar(); pintarClientes();
+    nuevoDoc(d.tipo);
+  } catch (err) {
+    alert('No se pudo crear el PDF. ¿Hay conexión a internet?\n\n' + err);
+    $('guardar').disabled = false; ponerTipo(tipo);
+    return;
+  }
+  const guardado = `✅ ${d.tipo === 'factura' ? 'Factura' : 'Presupuesto'} nº ${d.numero} guardado en Descargas`;
+  $('guardar').textContent = 'Enviando por correo…';
+  try {
+    await enviarPDF(d, blob);
+    d.enviado = true; salvar();
+    avisar(`${guardado} y enviado a ${db.envio.destino}`);
+  } catch (err) {
+    avisar(`${guardado}, pero NO se ha podido enviar por correo. Puedes reenviarlo desde "Guardados".`);
+  }
+  $('guardar').disabled = false; ponerTipo(tipo);
+};
+
+function avisar(t) { const a = $('aviso'); a.textContent = t; a.style.display = 'block'; scrollTo(0, 0); setTimeout(() => a.style.display = 'none', 8000); }
+
+/* ---------- Guardados ---------- */
+function pintarLista() {
+  const q = $('buscar').value.trim().toLowerCase();
+  const docs = db.docs.filter(d => !q || d.cliente.nombre.toLowerCase().includes(q));
+  $('lista').innerHTML = docs.length ? docs.map(d => `
+    <div class="lista-item">
+      <div class="info">
+        <span class="chip ${d.tipo === 'factura' ? 'f' : 'p'}">${d.tipo}</span><b>Nº ${esc(d.numero)} · ${esc(d.cliente.nombre)}</b>
+        <small>${fechaES(d.fecha)} · ${esc(d.lineas.map(l => l.concepto).join(', '))} · <b>${eur(d.total)}</b>
+          · ${d.enviado ? '📧 enviado' : '<span style="color:#b42318">📧 sin enviar</span>'}</small>
+      </div>
+      <button class="peq" data-a="pdf" data-id="${d.id}">⬇️ PDF otra vez</button>
+      <button class="peq" data-a="enviar" data-id="${d.id}">📧 ${d.enviado ? 'Reenviar' : 'Enviar'}</button>
+      <button class="peq" data-a="copiar" data-id="${d.id}">📋 Copiar</button>
+      ${d.tipo === 'presupuesto' ? `<button class="peq verde" data-a="facturar" data-id="${d.id}">➡️ Pasar a factura</button>` : ''}
+    </div>`).join('') : '<div class="vacio">Todavía no hay nada guardado.</div>';
+}
+$('buscar').addEventListener('input', pintarLista);
+$('lista').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = db.docs.find(x => x.id == b.dataset.id); if (!d) return;
+  if (b.dataset.a === 'pdf') return descargarPDF(d);
+  if (b.dataset.a === 'enviar') {
+    b.disabled = true; b.textContent = 'Enviando…';
+    try { await enviarPDF(d, await crearPDF(d)); d.enviado = true; salvar(); alert('Enviado a ' + db.envio.destino); }
+    catch (err) { alert('No se pudo enviar.\n\n' + err.message); }
+    return pintarLista();
+  }
+  cargarEnFormulario(d, b.dataset.a === 'facturar' ? 'factura' : d.tipo);
+});
+function cargarEnFormulario(d, nuevoTipo) {
+  lineas = d.lineas.map(l => ({ ...l }));
+  const c = d.cliente;
+  $('c-nombre').value = c.nombre; $('c-nif').value = c.nif; $('c-tel').value = c.tel || '';
+  $('c-dir').value = c.dir; $('c-ciudad').value = c.ciudad;
+  $('iva').value = String(d.iva); $('nota').value = d.nota || ''; $('fecha').value = hoy();
+  ponerTipo(nuevoTipo); pintarLineas(); ir('nuevo');
+  if (nuevoTipo === 'factura' && d.tipo === 'presupuesto') avisar('Revisa los datos y pulsa el botón verde para guardar la factura.');
+}
+
+/* ---------- Mis datos ---------- */
+const camposEmisor = { 'e-nombre': 'nombre', 'e-nif': 'nif', 'e-dir': 'dir', 'e-ciudad': 'ciudad', 'e-tel': 'tel', 'e-iban': 'iban' };
+function pintarDatos() {
+  for (const [id, k] of Object.entries(camposEmisor)) $(id).value = db.emisor[k] || '';
+  $('e-nfac').value = db.sigFactura; $('e-npre').value = db.sigPresupuesto;
+  $('env-destino').value = db.envio.destino; $('env-url').value = db.envio.url; $('env-clave').value = db.envio.clave;
+}
+$('env-guardar').onclick = () => {
+  db.envio.url = $('env-url').value.trim(); db.envio.clave = $('env-clave').value.trim();
+  salvar(); alert('Guardado.');
+};
+$('env-probar').onclick = async () => {
+  $('env-guardar').onclick();
+  try {
+    await llamarEnviador({ asunto: 'Prueba de Presupuestos y Facturas', texto: 'Si te llega este correo, el envío automático funciona.' });
+    alert('Correo de prueba enviado a ' + db.envio.destino + '. Mira la bandeja de entrada.');
+  } catch (err) { alert('No funciona todavía.\n\n' + err.message); }
+};
+$('guardar-datos').onclick = () => {
+  for (const [id, k] of Object.entries(camposEmisor)) db.emisor[k] = $(id).value.trim();
+  db.sigFactura = parseInt($('e-nfac').value, 10) || db.sigFactura;
+  db.sigPresupuesto = parseInt($('e-npre').value, 10) || db.sigPresupuesto;
+  salvar(); ponerTipo(tipo); alert('Datos guardados.');
+};
+$('exportar').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(db, null, 1)], { type: 'application/json' }));
+  a.download = `copia-facturas-${hoy()}.json`; a.click();
+};
+$('importar').onclick = () => $('fichero').click();
+$('fichero').onchange = async e => {
+  try {
+    const d = JSON.parse(await e.target.files[0].text());
+    if (!d.emisor || !Array.isArray(d.docs)) throw 0;
+    if (!confirm('Esto sustituye los datos actuales por los de la copia. ¿Seguir?')) return;
+    db = d; salvar(); pintarDatos(); pintarClientes(); nuevoDoc(); alert('Copia recuperada.');
+  } catch { alert('Ese archivo no es una copia válida.'); }
+};
+
+/* ---------- Pestañas ---------- */
+function ir(v) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.v === v));
+  document.querySelectorAll('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
+  if (v === 'guardados') pintarLista();
+  if (v === 'datos') pintarDatos();
+  if (v === 'nuevo') escalarPreview();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => ir(t.dataset.v));
+document.querySelectorAll('.tipo button').forEach(b => b.onclick = () => ponerTipo(b.dataset.t));
+$('limpiar').onclick = () => nuevoDoc(tipo);
+
+pintarClientes();
+nuevoDoc('presupuesto');
+if (!db.emisor.nombre) { ir('datos'); alert('¡Bienvenida! Primero rellena tus datos (salen en todos los presupuestos y facturas).'); }
+</script>
+</body>
+</html>
